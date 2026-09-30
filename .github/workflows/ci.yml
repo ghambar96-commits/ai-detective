@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  quality:
+    name: Lint · Test · Build (production)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Absolute path so the Prisma CLI and the generated client resolve the
+      # exact same SQLite file (relative paths are resolved differently).
+      DATABASE_URL: file:${{ github.workspace }}/db/ci.db
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: bun run db:generate
+
+      - name: Create database schema
+        run: mkdir -p db && bun run db:push
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Build (production, standalone output)
+        run: bun run build
+
+      - name: Start production server
+        run: |
+          bun .next/standalone/server.js > server.log 2>&1 &
+          echo $! > server.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/api/v1/stats > /dev/null 2>&1; then
+              echo "AIDetective is up and serving /api/v1"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Server failed to become healthy — server.log follows"
+          cat server.log
+          exit 1
+
+      - name: Run tests (unit + integration against the live server)
+        run: bun test
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f server.pid ]; then
+            kill "$(cat server.pid)" 2>/dev/null || true
+          fi
+
+      - name: Upload server log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-log
+          path: server.log
+          if-no-files-found: ignore

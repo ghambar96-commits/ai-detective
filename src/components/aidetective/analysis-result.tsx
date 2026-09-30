@@ -336,6 +336,18 @@ export function AnalysisResult({ analysis }: { analysis: AnalysisDetail }) {
           >
             <Download aria-hidden className="size-4" /> Download JSON
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              downloadReport(analysis.id, "html").catch((error: unknown) =>
+                toast.error(error instanceof Error ? error.message : "Download failed")
+              )
+            }
+            className="min-h-11"
+          >
+            <Download aria-hidden className="size-4" /> Download HTML
+          </Button>
         </div>
       ) : null}
 

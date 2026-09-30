@@ -11,6 +11,7 @@ import { motion } from "framer-motion";
 import { Shell } from "@/components/aidetective/shell";
 import { AnalysisDetailView } from "@/components/aidetective/views/analysis-detail-view";
 import { AnalyzerView } from "@/components/aidetective/views/analyzer-view";
+import { AboutView } from "@/components/aidetective/views/about-view";
 import { ApiView } from "@/components/aidetective/views/api-view";
 import { DashboardView } from "@/components/aidetective/views/dashboard-view";
 import { DatasetsView } from "@/components/aidetective/views/datasets-view";
@@ -51,6 +52,8 @@ function ActiveView() {
       return <SystemView />;
     case "settings":
       return <SettingsView />;
+    case "about":
+      return <AboutView />;
     case "analysis-detail":
       return detailAnalysisId ? (
         <AnalysisDetailView id={detailAnalysisId} />

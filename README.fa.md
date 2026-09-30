@@ -6,9 +6,12 @@ AIDetective متن، اسناد، تصویر و صوت را با یک مجموع
 
 > ⚠️ **اول این را بخوانید: AIDetective تحلیل احتمالاتی ارائه می‌دهد و خروجی آن مدرک قطعی نیست.** خروجی این ابزار یک «برآورد» است، نه اثبات. تشخیص محتوای تولیدشده با هوش مصنوعی همیشه ممکن است **مثبت کاذب (false positive)** و **منفی کاذب (false negative)** بدهد. در این پروژه، `uncertain` (نامطمئن) و `inconclusive` (غیرقابل‌تعیین) خروجی‌های درجه‌یک و معتبر هستند و موتور امتیازدهی **عمداً طوری طراحی شده که confidence هرگز به ۱.۰ نرسد**. از AIDetective به‌عنوان تنها مدرک برای متهم‌کردن، تنبیه، تهمت یا قضاوت درباره‌ی هیچ‌کس استفاده نکنید. جزئیات کامل در [docs/limitations.md](docs/limitations.md).
 
+[![CI](https://github.com/<your-org>/aidetective/actions/workflows/ci.yml/badge.svg)](https://github.com/<your-org>/aidetective/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Engine](https://img.shields.io/badge/engine-0.1.0-informational)]()
 [![Status](https://img.shields.io/badge/status-MVP%20%2F%20heuristic%20baselines-orange)]()
+
+> بعد از انتشار روی GitHub، `<your-org>` را در badge مربوط به CI با نام کاربری/سازمان خودتان جایگزین کنید.
 
 ---
 
@@ -40,12 +43,13 @@ AIDetective متن، اسناد، تصویر و صوت را با یک مجموع
 
 ## نماهای برنامه (Screenshots)
 
-> تصاویر زیر از داشبورد وب محلی (نسخه 0.1.0) گرفته شده‌اند.
+> تصاویر زیر از داشبورد وب محلی گرفته شده‌اند.
 
 ![Dashboard](docs/screenshots/dashboard.png)
-![تحلیل متن همراه با signalها و شواهد](docs/screenshots/text-analysis.png)
-![تحلیل تصویر همراه با شواهد metadata](docs/screenshots/image-analysis.png)
-![نمای گزارش](docs/screenshots/report.png)
+![تحلیل متن همراه با signalها و شواهد](docs/screenshots/analyzer.png)
+![تحلیل گروهی فایل‌ها](docs/screenshots/batch-analysis.png)
+![درباره و نحوه‌ی کار](docs/screenshots/about.png)
+![وضعیت سیستم](docs/screenshots/system.png)
 
 ---
 
@@ -67,14 +71,16 @@ AIDetective متن، اسناد، تصویر و صوت را با یک مجموع
 ## ویژگی‌ها
 
 - **چهار وجه (modality)**: متن (inline یا فایل)، اسناد (PDF/DOCX)، تصویر (PNG/JPG/WEBP)، صوت (WAV/MP3/FLAC/M4A).
+- **تحلیل گروهی (Batch)**: در تب Files داشبورد چند فایل را همزمان رها کنید — هر فایل صف می‌شود، تحلیل می‌شود و به گزارش کامل خودش لینک دارد.
 - **۱۵ detector داخلی heuristic** که هر signal را با `aiScore` (۰ = کاملاً انسانی … ۱ = کاملاً AI، ۰.۵ = خنثی)، weight، direction و **شواهد** (نقل‌قول یا آمار) همراه می‌کنند.
 - **موتور امتیازدهی قابل‌توضیح**: رأی وزن‌دار → likelihood score؛ هم‌سویی و شدت signalها → confidence (به‌طور پیش‌فرض با سقف سخت ۰.۹۲). سهم هر سیگنال در امتیاز نهایی به‌صورت breakdown ذخیره می‌شود.
 - **pipeline تحلیل فایل** با تشخیص نوع فایل از روی magic bytes، پاک‌سازی filename، محدودیت حجم و پردازش صف‌شده (202 + polling).
-- **گزارش‌ها**: JSON ساختاریافته و HTML مستقل و قابل چاپ (در این نسخه فقط JSON و HTML؛ PDF از طریق رابط `ReportExporter` در roadmap است).
+- **گزارش‌ها**: JSON ساختاریافته و HTML مستقل و قابل چاپ — از خود داشبورد قابل مشاهده، کپی و دانلودند (PDF از طریق رابط `ReportExporter` در roadmap است).
 - **لایه‌ی LLM اختیاری** (فقط توضیح): ZAI managed runtime، Ollama یا هر API سازگار با OpenAI (OpenAI/OpenRouter/سرویس‌های دلخواه). به‌طور پیش‌فرض غیرفعال است.
 - **سیستم plugin**: یک پوشه زیر `plugins/` بگذارید؛ loader در زمان boot آن را ثبت می‌کند — plugin خراب، contained می‌شود و گزارش می‌شود، هرگز برنامه را نمی‌اندازد.
 - **REST API** در مسیر `/api/v1` با envelope یکپارچه‌ی `{ok, data | error}`، CORS، سند OpenAPI 3.0.3 (۱۸ مسیر)، auth اختیاری با API key و rate limit هر کلید (کلیدها به‌صورت sha256 ذخیره می‌شوند و plaintext فقط یک‌بار نمایش داده می‌شود).
 - **ذخیره‌سازی لوکال-فرست**: SQLite از طریق Prisma؛ فایل‌های آپلودی با id تولیدشده‌ی سمت سرور داخل پوشه‌ی `uploads/` نگهداری می‌شوند.
+- **مستندات داخل داشبورد**: نمای «About & How It Works» نحوه‌ی کار pipeline، ریاضیات scoring و رفتار هر detector را همراه با **محدودیت‌های صادقانه‌اش** توضیح می‌دهد — به‌صورت زنده از `GET /api/v1/detectors` خوانده می‌شود.
 - **آگاهی از فارسی و انگلیسی** در featureهای متنی (تشخیص زبان، phrase listها؛ پوشش فارسی صریحاً experimental است).
 
 ---
@@ -199,31 +205,30 @@ AIDetective متن، اسناد، تصویر و صوت را با یک مجموع
 پیش‌نیاز: **[Bun](https://bun.sh)** نسخه‌ی 1.1+ (برای serve، Node 20+ هم کار می‌کند، ولی اسکریپت‌ها Bun را فرض می‌کنند)، حدود ۵۰۰ مگابایت فضا.
 
 ```bash
-git clone https://github.com/<org>/aidetective.git
+git clone https://github.com/<your-org>/aidetective.git
 cd aidetective
-bun install
-cp .env.example .env       # پیش‌فرض‌ها امن‌اند: LLM غیرفعال، حالت local
-bun run db:push            # ساخت schema روی SQLite
+bun run setup              # یک دستور: نصب + .env + schema (idempotent)
 bun run dev                # http://localhost:3000
 ```
 
-`http://localhost:3000` را باز کنید. در این نسخه از REST API (بخش بعد) یا سند OpenAPI در `http://localhost:3000/api/v1/openapi` استفاده کنید. با اولین درخواست، موتور خودش را bootstrap می‌کند: detectorها/parserها/exporterهای داخلی → pluginها → صف کار → seed کردن model registry.
+دستور `bun run setup` این کارها را می‌کند: `bun install`؛ ساختن `.env` از روی `.env.example` (بدون بازنویسی فایل موجود)؛ تغییر `DATABASE_URL` به یک **مسیر مطلق** (Prisma مسیرهای نسبی SQLite را بین CLI و client تولیدشده متفاوت حل می‌کند — مسیر مطلق یک خطای واقعی در نصب تازه را از بین می‌برد)؛ ساختن پوشه‌های `db/` و `uploads/`؛ و اعمال schema.
 
-اسکریپت‌های مفید: `bun run lint`، `bun run db:generate`، `bun run db:push`، `bun run build`، `bun run start`.
+نصب دستی ترجیح می‌دهید؟ `bun install && cp .env.example .env` — و سپس **`DATABASE_URL` را در `.env` به یک مسیر مطلق تغییر دهید**، مثلاً `file:/home/you/aidetective/db/custom.db`، قبل از `bun run db:push`.
+
+`http://localhost:3000` را باز کنید. با اولین درخواست، موتور خودش را bootstrap می‌کند: detectorها/parserها/exporterهای داخلی → pluginها → صف کار → seed کردن model registry.
+
+اسکریپت‌های مفید: `bun run setup`، `bun run dev`، `bun run lint`، `bun test`، `bun run db:generate`، `bun run db:push`، `bun run build`، `bun run start`.
 
 ---
 
 ## بیلد production و Docker
 
-**بیلد production روی سیستم خودتان** (برای بیلد به devDependencies نیاز است):
+**بیلد production روی سیستم خودتان** (بیلد خروجی `output: "standalone"` در Next.js را تولید می‌کند، همراه با کپی static/public):
 
 ```bash
-bun install
 bun run build
-bun run start
+bun run start               # سرو کردن ‎.next/standalone/server.js روی پورت 3000
 ```
-
-> توجه: در این نسخه `next.config.ts` گزینه‌ی `output: "standalone"` را فعال **نکرده**، پس با `bunx next start` سرو کنید (اسکریپت `bun run start` داخل مخزن، بیلد standalone را فرض می‌کند). ایمیج Docker پایین همین را درست انجام می‌دهد.
 
 **Docker** (توصیه‌شده):
 
@@ -235,7 +240,7 @@ docker compose up -d --build
 # → http://localhost:3000
 ```
 
-ایمیج یک build سه‌مرحله‌ای روی `oven/bun:1` است (deps → build → runtime). در شروع کانتینر، ابتدا `bun run db:push` (همگام‌سازی idempotent اسکیما) و سپس `bunx next start -p 3000` اجرا می‌شود. دایرکتوری‌های `./db` و `./uploads` را mount کنید (docker-compose.yml همین کار را می‌کند) تا فایل SQLite و فایل‌های آپلودی با جابه‌جایی کانتینر از بین نروند.
+ایمیج یک build سه‌مرحله‌ای روی `oven/bun:1` است (deps → build → runtime). مرحله‌ی build، همان `bun run build` خود مخزن را اجرا می‌کند (خروجی standalone کامل تولید می‌شود). در شروع کانتینر، ابتدا `bun run db:push` (همگام‌سازی idempotent اسکیما) و سپس سرور مستقل `bun .next/standalone/server.js` اجرا می‌شود. دایرکتوری‌های `./db` و `./uploads` را mount کنید (docker-compose.yml همین کار را می‌کند) تا فایل SQLite و فایل‌های آپلودی با جابه‌جایی کانتینر از بین نروند.
 
 ---
 
@@ -425,20 +430,25 @@ interface Signal {
 ## ساختار پروژه
 
 ```
+├── .github/
+│   └── workflows/ci.yml              # CI: lint + بیلد production + اجرای suite تست روی سرور زنده
 ├── prisma/
 │   └── schema.prisma                 # Analysis, AnalysisSignal, AnalysisDetectorRun, Report,
 │                                     # ApiKey, Dataset, Model, Plugin, SystemEvent, Setting
 ├── plugins/
 │   └── example-text-detector/        # plugin مرجع (plugin.json + index.js)
+├── scripts/
+│   └── setup.ts                      # `bun run setup`: ساخت .env + مسیر مطلق DATABASE_URL + schema
 ├── docs/
 │   ├── architecture.md               # شرح عمیق: orchestrator، ریاضیات scoring، صف، امنیت
 │   ├── plugins.md                    # راهنمای نویسندگان plugin + مثال‌های کامل
-│   └── limitations.md                # محدودیت‌های صادقانه و راهنمای استفاده‌ی مسئولانه
+│   ├── limitations.md                # محدودیت‌های صادقانه و راهنمای استفاده‌ی مسئولانه
+│   └── screenshots/                  # تصاویر واقعی داشبورد (در هر دو README ارجاع شده)
 ├── examples/
 │   └── aidetective_client.py         # کلاینت REST پایتون (فقط requests)
 ├── src/
 │   ├── app/
-│   │   ├── page.tsx                  # ریشه‌ی وب (داشبورد در حال توسعه)
+│   │   ├── page.tsx                  # ریشه‌ی وب (workspace داشبورد تک-مسیره)
 │   │   └── api/v1/                   # REST API (۱۸ مسیر، OpenAPI 3.0.3)
 │   │       ├── analyze/              # POST متن inline
 │   │       ├── analyze/file/         # POST multipart (202 + polling)
@@ -449,7 +459,7 @@ interface Signal {
 │   │       ├── settings/ · api-keys/ · api-keys/[id]/
 │   │       └── openapi/              # سند OpenAPI 3.0.3
 │   ├── components/
-│   │   ├── aidetective/views/        # نمای‌های داشبورد (در حال توسعه)
+│   │   ├── aidetective/views/        # نمای‌های داشبورد (dashboard، analyzer + batch، history، reports، datasets، models، llm، api، plugins، system، settings، about)
 │   │   └── ui/                       # کامپوننت‌های shadcn/ui
 │   ├── lib/
 │   │   ├── api/respond.ts            # envelope {ok, data|error}، CORS، wrapper احراز هویت
@@ -494,6 +504,8 @@ bun test          # همه‌چیز (integration بدون سرور با اطلا
 bun test tests/unit/         # فقط موتور، بدون نیاز به سرور
 bun run lint && bun run build  # دروازه‌های کیفیت
 ```
+
+**CI یکپارچه:** فایل [`.github/workflows/ci.yml`](.github/workflows/ci.yml) روی هر push و هر pull request اجرا می‌شود: `bun install --frozen-lockfile` → تولید Prisma client و اعمال schema → `bun run lint` → `bun run build` (خروجی production standalone) → بالا آوردن سرور واقعی production → `bun test` (تست‌های unit **و** کل suite integration روی همان سرور زنده). هیچ مرحله‌ای skip یا mock نمی‌شود؛ اگر سرور سالم نشود، لاگ به‌عنوان artifact آپلود و اجرای workflow رد می‌شود.
 
 suite integration ردیف‌های واقعی (analysis/dataset/key) در دیتابیس می‌نویسد و بعد از خودش پاک می‌کند؛ کلیدهایی که می‌سازد ابطال می‌شوند و به‌عنوان تاریخچه‌ی audit در داشبورد دیده می‌شوند.
 
@@ -546,7 +558,7 @@ suite integration ردیف‌های واقعی (analysis/dataset/key) در دی�
 
 | متغیر | پیش‌فرض | توضیح |
 | --- | --- | --- |
-| `DATABASE_URL` | `file:./db/custom.db` | اتصال SQLite (لوکال-فرست). مسیرهای نسبی نسبت به `prisma/schema.prisma` حل می‌شوند؛ در Docker مسیر مطلق بدهید (`file:/app/db/custom.db`) |
+| `DATABASE_URL` | `file:./db/custom.db` | اتصال SQLite (لوکال-فرست). حتماً **مسیر مطلق** بدهید — Prisma مسیر نسبی را بین CLI و client تولیدشده متفاوت حل می‌کند؛ `bun run setup` این خط را خودکار به مسیر مطلق تبدیل می‌کند. در Docker: `file:/app/db/custom.db` |
 | `AIDETECTIVE_REQUIRE_API_KEY` | `false` | الزام API key روی `/api/v1` (حالت local داشبورد بدون کلید کار می‌کند) |
 | `AIDETECTIVE_MAX_UPLOAD_MB` | `25` | محدودیت حجم آپلود به MB (سقف سخت HTTP: ۶۰ MB) |
 | `AIDETECTIVE_MAX_TEXT_CHARS` | `200000` | محدودیت طول متن inline |

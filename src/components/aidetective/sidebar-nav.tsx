@@ -6,6 +6,7 @@
  */
 import {
   Activity,
+  BookOpenText,
   Boxes,
   Database,
   FileSearch,
@@ -65,6 +66,12 @@ export const NAV_GROUPS: NavGroup[] = [
       { view: "settings", label: "Settings", icon: Settings },
     ],
   },
+  {
+    label: "Resources",
+    items: [
+      { view: "about", label: "About & How It Works", icon: BookOpenText },
+    ],
+  },
 ];
 
 export const VIEW_TITLES: Record<ViewId, string> = {
@@ -82,6 +89,7 @@ export const VIEW_TITLES: Record<ViewId, string> = {
   plugins: "Plugins",
   system: "System Status",
   settings: "Settings",
+  about: "About & How It Works",
   "analysis-detail": "Analysis Detail",
 };
 

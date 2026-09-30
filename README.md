@@ -6,9 +6,12 @@ AIDetective analyzes **text, documents, images and audio** with an explainable, 
 
 > ⚠️ **Read this first: AIDetective is probabilistic.** Its output is an *estimate*, never proof. Detection of AI-generated content can and does produce **false positives and false negatives**. `uncertain` and `inconclusive` are first-class outcomes in this project, and the scoring engine is **capped below 1.0 confidence by design**. Do not use AIDetective as sole evidence to accuse, punish, defame or judge anyone. See [docs/limitations.md](docs/limitations.md).
 
+[![CI](https://github.com/<your-org>/aidetective/actions/workflows/ci.yml/badge.svg)](https://github.com/<your-org>/aidetective/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Engine](https://img.shields.io/badge/engine-0.1.0-informational)]()
 [![Status](https://img.shields.io/badge/status-MVP%20%2F%20heuristic%20baselines-orange)]()
+
+> Replace `<your-org>` in the CI badge with your GitHub username/org after publishing.
 
 ---
 
@@ -40,12 +43,13 @@ AIDetective analyzes **text, documents, images and audio** with an explainable, 
 
 ## Screenshots
 
-> Screenshots captured from the local web dashboard (v0.1.0).
+> Screenshots captured from the local web dashboard.
 
 ![Dashboard](docs/screenshots/dashboard.png)
-![Text analysis with signals and evidence](docs/screenshots/text-analysis.png)
-![Image analysis with metadata evidence](docs/screenshots/image-analysis.png)
-![Report view](docs/screenshots/report.png)
+![Text analysis with signals and evidence](docs/screenshots/analyzer.png)
+![Batch file analysis](docs/screenshots/batch-analysis.png)
+![About & How It Works](docs/screenshots/about.png)
+![System status](docs/screenshots/system.png)
 
 ---
 
@@ -67,14 +71,16 @@ AIDetective analyzes **text, documents, images and audio** with an explainable, 
 ## Features
 
 - **Four modalities**: text (inline or file), documents (PDF/DOCX), images (PNG/JPG/WEBP), audio (WAV/MP3/FLAC/M4A).
+- **Batch analysis**: drop multiple documents at once in the dashboard's Files tab — each file is queued, analyzed and linked to its own full report.
 - **15 built-in heuristic detectors** with per-signal `aiScore` (0 = human … 1 = AI, 0.5 = neutral), weight, direction and quoted/statistical **evidence**.
 - **Explainable scoring engine**: weighted vote → likelihood score; signal consistency & strength → confidence (hard-capped at 0.92 by default). Full per-signal contribution breakdown is persisted.
 - **File analysis pipeline** with magic-byte type detection, filename sanitization, size limits and queued processing (202 + polling).
-- **Reports**: structured JSON and self-contained printable HTML (JSON + HTML only in this release; PDF is a planned drop-in via the `ReportExporter` interface).
+- **Reports**: structured JSON and self-contained printable HTML — viewable, downloadable and copyable straight from the dashboard (PDF is a planned drop-in via the `ReportExporter` interface).
 - **Optional LLM layer** (explanation only): ZAI managed runtime, Ollama, or any OpenAI-compatible API (OpenAI/OpenRouter/custom). Disabled by default.
 - **Plugin system**: drop a folder under `plugins/`, and the loader registers your detectors/parsers/LLM providers/exporters at boot — broken plugins are contained and reported, never fatal.
 - **REST API** (`/api/v1`) with a unified `{ok, data | error}` envelope, CORS, OpenAPI 3.0.3 description (18 paths), optional API-key auth with per-key rate limits (keys stored sha256-hashed, plaintext shown once).
 - **Local-first storage**: SQLite via Prisma; uploaded files stored under server-generated ids inside the `uploads/` directory.
+- **In-dashboard documentation**: the “About & How It Works” view explains the pipeline, the scoring math and every detector's measured behavior **and its honest limitations** — loaded live from `GET /api/v1/detectors`.
 - **Persian + English awareness** in text features (language detection, phrase lists; Persian coverage is explicitly experimental).
 
 ---
@@ -199,31 +205,30 @@ All detectors are **transparent heuristics** (no trained models). Each exposes i
 Requirements: **[Bun](https://bun.sh)** 1.1+ (Node 20+ works for serving, but scripts assume Bun), ~500 MB disk.
 
 ```bash
-git clone https://github.com/<org>/aidetective.git
+git clone https://github.com/<your-org>/aidetective.git
 cd aidetective
-bun install
-cp .env.example .env       # defaults are safe: LLM disabled, local mode
-bun run db:push            # creates the SQLite schema
+bun run setup              # one command: install + .env + schema (idempotent)
 bun run dev                # http://localhost:3000
 ```
 
-Open `http://localhost:3000`. In this release, use the REST API (below) or the OpenAPI document at `http://localhost:3000/api/v1/openapi` to explore. On first request the engine bootstraps itself: builtin detectors/parsers/exporters → plugins → queue worker → model-registry seeding.
+`bun run setup` runs `bun install`, creates `.env` from `.env.example` (never overwriting an existing one), points `DATABASE_URL` at an **absolute** path (Prisma resolves relative SQLite paths differently between its CLI and the generated client — absolute avoids a real fresh-install failure mode), ensures `db/` and `uploads/` exist, and applies the schema.
 
-Useful scripts: `bun run lint`, `bun run db:generate`, `bun run db:push`, `bun run build`, `bun run start`.
+Prefer manual setup? `bun install && cp .env.example .env` — then **edit `DATABASE_URL` in `.env` to an absolute path** such as `file:/home/you/aidetective/db/custom.db` before `bun run db:push`.
+
+Open `http://localhost:3000`. On first request the engine bootstraps itself: builtin detectors/parsers/exporters → plugins → queue worker → model-registry seeding.
+
+Useful scripts: `bun run setup`, `bun run dev`, `bun run lint`, `bun test`, `bun run db:generate`, `bun run db:push`, `bun run build`, `bun run start`.
 
 ---
 
 ## Production build & Docker
 
-**Local production build** (devDependencies are required to build):
+**Local production build** (the build produces Next.js `output: "standalone"`, including the static/public copy):
 
 ```bash
-bun install
 bun run build
-bun run start
+bun run start               # serves .next/standalone/server.js on port 3000
 ```
-
-> Note: `next.config.ts` in this release does **not** enable Next.js `output: "standalone"`, so serve with `bunx next start` (the bundled `bun run start` script expects a standalone build). The Docker image below already does the right thing.
 
 **Docker** (recommended):
 
@@ -234,7 +239,7 @@ docker compose up -d --build
 # → http://localhost:3000
 ```
 
-The image is a three-stage build on `oven/bun:1` (deps → build → runtime). At container start it runs `bun run db:push` (idempotent schema sync) and then `bunx next start -p 3000`. Mount `./db` and `./uploads` (docker-compose.yml does this) so the SQLite file and uploaded files survive container replacement.
+The image is a three-stage build on `oven/bun:1` (deps → build → runtime). The build stage runs the repo's own `bun run build` (which produces the complete standalone output). At container start it runs `bun run db:push` (idempotent schema sync) and then the self-contained `bun .next/standalone/server.js`. Mount `./db` and `./uploads` (docker-compose.yml does this) so the SQLite file and uploaded files survive container replacement.
 
 ---
 
@@ -424,15 +429,20 @@ interface Signal {
 ## Project structure
 
 ```
+├── .github/
+│   └── workflows/ci.yml              # CI: lint + production build + live-server test suite
 ├── prisma/
 │   └── schema.prisma                 # Analysis, AnalysisSignal, AnalysisDetectorRun, Report,
 │                                     # ApiKey, Dataset, Model, Plugin, SystemEvent, Setting
 ├── plugins/
 │   └── example-text-detector/        # reference plugin (plugin.json + index.js)
+├── scripts/
+│   └── setup.ts                      # `bun run setup`: .env creation + absolute DATABASE_URL + schema
 ├── docs/
 │   ├── architecture.md               # deep dive: orchestrator, scoring math, queue, security
 │   ├── plugins.md                    # plugin author guide + full examples
-│   └── limitations.md                # honest limitations & responsible-use guidance
+│   ├── limitations.md                # honest limitations & responsible-use guidance
+│   └── screenshots/                  # real captures of the dashboard (referenced by both READMEs)
 ├── examples/
 │   └── aidetective_client.py         # Python REST client (requests only)
 ├── src/
@@ -448,7 +458,7 @@ interface Signal {
 │   │       ├── settings/ · api-keys/ · api-keys/[id]/
 │   │       └── openapi/              # OpenAPI 3.0.3 document
 │   ├── components/
-│   │   ├── aidetective/views/        # dashboard views (dashboard, analyzer, history, reports, datasets, models, llm, api, plugins, system, settings)
+│   │   ├── aidetective/views/        # dashboard views (dashboard, analyzer + batch, history, reports, datasets, models, llm, api, plugins, system, settings, about)
 │   │   └── ui/                       # shadcn/ui primitives
 │   ├── lib/
 │   │   ├── api/respond.ts            # envelope {ok, data|error}, CORS, auth wrapper
@@ -493,6 +503,8 @@ bun test          # everything (integration tests skip with a notice if the serv
 bun test tests/unit/         # engine-only, no server needed
 bun run lint && bun run build  # quality gates
 ```
+
+**Continuous Integration:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push and pull request: `bun install --frozen-lockfile` → Prisma generate + schema push → `bun run lint` → `bun run build` (production standalone) → starts the real production server → `bun test` (unit **and** full integration suite against that live server). No step is skipped or mocked; if the server fails to become healthy, the log is uploaded as an artifact and the run fails.
 
 The integration suite writes real rows (analyses/datasets/keys) into your database and cleans up after itself; keys it creates are revoked and visible in the dashboard as audit history.
 

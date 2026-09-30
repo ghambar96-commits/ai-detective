@@ -23,6 +23,7 @@ export type ViewId =
   | "plugins"
   | "system"
   | "settings"
+  | "about"
   | "analysis-detail";
 
 const VIEW_TO_HASH: Record<ViewId, string> = {
@@ -40,6 +41,7 @@ const VIEW_TO_HASH: Record<ViewId, string> = {
   plugins: "#/plugins",
   system: "#/system",
   settings: "#/settings",
+  about: "#/about",
   "analysis-detail": "#/analysis",
 };
 

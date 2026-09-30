@@ -1,14 +1,15 @@
 # AIDetective — single-container deployment.
 #
-# Notes on this build (read before "fixing" the Dockerfile):
-#  - next.config.ts does NOT enable `output: "standalone"`, so the image runs
-#    the regular `.next` build via `next start` (not `.next/standalone/server.js`).
-#  - The build needs devDependencies (TypeScript, Tailwind, ESLint), hence a
-#    plain `bun install` — not `--production`.
-#  - SQLite is the local-first database. The container applies the Prisma
-#    schema at startup (`bun run db:push`) and then serves on port 3000.
-#  - Mount volumes for /app/db and /app/uploads (see docker-compose.yml) so
-#    data survives container replacement.
+# How this build works (read before "fixing" the Dockerfile):
+#  - next.config.ts enables `output: "standalone"`. The build stage therefore
+#    runs the repo's own `bun run build`, which also copies .next/static and
+#    public/ into .next/standalone (required for a working UI).
+#  - The runtime starts the self-contained server: bun .next/standalone/server.js
+#    (verified start command; `next start` is not used with standalone output).
+#  - The full /app copy keeps the Prisma CLI available so the container can
+#    apply the schema at startup (`bun run db:push`, idempotent).
+#  - SQLite is the local-first database. Mount volumes for /app/db and
+#    /app/uploads (see docker-compose.yml) so data survives replacement.
 
 # ── Stage 1: dependencies ─────────────────────────────────────────────────────
 FROM oven/bun:1 AS deps
@@ -20,7 +21,8 @@ RUN bun install --frozen-lockfile
 FROM deps AS build
 COPY . .
 RUN bunx prisma generate
-RUN bunx next build
+# Runs the repo build script: `next build` + static/public copy into standalone.
+RUN bun run build
 
 # ── Stage 3: runtime ──────────────────────────────────────────────────────────
 FROM oven/bun:1 AS runtime
@@ -34,5 +36,5 @@ ENV NODE_ENV=production \
 COPY --from=build /app /app
 RUN mkdir -p /app/db /app/uploads
 EXPOSE 3000
-# Apply the schema (idempotent) and start the server.
-CMD ["sh", "-c", "bun run db:push && bunx next start -p 3000"]
+# Apply the schema (idempotent) and start the standalone server.
+CMD ["sh", "-c", "bun run db:push && bun .next/standalone/server.js"]
