@@ -1,6 +1,7 @@
 # AIDetective 🔍
 
 **An open-source, local-first, multimodal AI-content detection platform.**
+[English](README.md) | [فارسی](README.fa.md)
 
 AIDetective analyzes **text, documents, images and audio** with an explainable, weighted ensemble of heuristic detectors. Every result ships with the raw signals, per-signal evidence, a likelihood score, a capped confidence value — and an honest disclaimer.
 
