@@ -1,0 +1,9 @@
+{
+  "id": "plugin.example-text-detector",
+  "name": "Example hedging-phrase detector",
+  "version": "1.0.0",
+  "type": "detector",
+  "modality": "text",
+  "entry": "index.js",
+  "description": "Reference plugin: counts hedging/cliché openings ('In this article, we will…', 'Let's dive in…') that often appear in AI-assisted listicles and SEO copy. Demonstrates the stable plugin contract for detector authors."
+}

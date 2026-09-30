@@ -1,0 +1,14 @@
+# Keep the Docker build context small and secret-free.
+node_modules
+.next
+.git
+db
+uploads
+dev.log
+server.log
+*.log
+docs/screenshots
+# Never bake env files into the image — provide them at runtime
+# (docker-compose env_file: or `docker run --env-file`).
+.env
+.env.*

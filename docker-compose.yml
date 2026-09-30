@@ -1,0 +1,24 @@
+# AIDetective — docker-compose deployment.
+#
+# Before first start:
+#   cp .env.example .env
+#   # IMPORTANT: point DATABASE_URL at the mounted volume so the SQLite file
+#   # lands in ./db (relative SQLite paths are resolved against prisma/):
+#   #   DATABASE_URL=file:/app/db/custom.db
+# Then:
+#   docker compose up -d --build
+# The app is served on http://localhost:3000.
+
+services:
+  aidetective:
+    build: .
+    image: aidetective:latest
+    container_name: aidetective
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - ./db:/app/db        # SQLite database (local-first persistence)
+      - ./uploads:/app/uploads # uploaded files, stored under analysis ids
+    restart: unless-stopped

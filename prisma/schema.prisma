@@ -1,0 +1,178 @@
+// AIDetective — database schema
+// SQLite for local-first default. The schema avoids SQLite-specific features
+// so it can be ported to PostgreSQL-compatible engines later (see README).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Analysis core ────────────────────────────────────────────────────────────
+
+model Analysis {
+  id             String    @id @default(cuid())
+  inputType      String // "text" | "file"
+  modality       String // "text" | "image" | "audio" | "document"
+  status         String // "queued" | "processing" | "completed" | "failed"
+  fileName       String? // sanitized original name (files only)
+  fileExt        String?
+  fileSize       Int? // bytes
+  classification String? // likely_human | likely_ai_generated | likely_synthetic | uncertain | inconclusive
+  likelihoodScore Float? // 0..1
+  confidence     Float? // 0..1 (never 1.0 — capped)
+  processingTime Int? // milliseconds
+  summary        String?
+  warnings       String? // JSON string[]
+  errors         String? // JSON string[]
+  llmInterpretation String?
+  llmProvider    String? // e.g. "zai" / "ollama" / "openai_compatible"
+  llmModel       String?
+  metadata       String? // JSON object (modality-specific summary + storage info)
+  createdAt      DateTime  @default(now())
+  completedAt    DateTime?
+
+  signals      AnalysisSignal[]
+  detectorRuns AnalysisDetectorRun[]
+  reports      Report[]
+
+  @@index([createdAt])
+  @@index([modality, status])
+  @@index([classification])
+}
+
+model AnalysisSignal {
+  id          String  @id @default(cuid())
+  analysisId  String
+  detectorId  String
+  signalKey   String // e.g. "text.burstiness.low_variance"
+  name        String
+  description String?
+  value       String? // stringified scalar (number/string/boolean)
+  unit        String?
+  aiScore     Float? // 0..1, 0.5 neutral, null = not quantifiable
+  weight      Float
+  direction   String // ai_indicator | human_indicator | neutral
+  evidence    String? // JSON EvidenceItem[]
+  notes       String?
+
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
+  @@index([detectorId])
+}
+
+model AnalysisDetectorRun {
+  id           String  @id @default(cuid())
+  analysisId   String
+  detectorId   String
+  detectorName String
+  version      String
+  source       String // builtin | plugin
+  modality     String
+  status       String // ok | skipped | error
+  durationMs   Int?
+  summary      String?
+  error        String?
+
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
+  @@index([detectorId])
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  analysisId String
+  format     String // json | html
+  content    String
+  createdAt  DateTime @default(now())
+
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
+}
+
+// ─── API access ───────────────────────────────────────────────────────────────
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  name       String
+  prefix     String // visible prefix, e.g. "adk_a1b2c3d4…"
+  keyHash    String    @unique // sha256 of plaintext key — plaintext is NEVER stored
+  rateLimit  Int? // requests per minute (null = unlimited)
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  @@index([keyHash])
+}
+
+// ─── Platform registry ────────────────────────────────────────────────────────
+
+model Dataset {
+  id          String   @id @default(cuid())
+  name        String
+  modality    String // text | image | audio | document | mixed
+  description String?
+  labels      String? // JSON string[]
+  sampleCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([modality])
+}
+
+model Model {
+  id            String   @id @default(cuid())
+  name          String
+  version       String
+  modality      String
+  provider      String // builtin | ollama | openai_compatible | zai | custom
+  location      String // local | remote
+  status        String // available | unavailable | experimental | disabled
+  capabilities  String? // JSON string[]
+  configuration String? // JSON object
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([modality])
+}
+
+model Plugin {
+  id          String   @id
+  name        String
+  version     String
+  type        String // detector | parser | llm_provider | exporter
+  modality    String?
+  source      String // plugin | builtin
+  status      String // loaded | error | disabled
+  description String?
+  error       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([type])
+}
+
+model SystemEvent {
+  id        String   @id @default(cuid())
+  level     String // info | warn | error
+  source    String // orchestrator | detector:<id> | llm | plugin | api | security | system
+  message   String
+  data      String? // JSON object (never contains secrets)
+  createdAt DateTime @default(now())
+
+  @@index([level, createdAt])
+}
+
+// ─── Settings (key/value JSON store for runtime configuration) ────────────────
+
+model Setting {
+  key       String   @id
+  value     String // JSON
+  updatedAt DateTime @updatedAt
+}
