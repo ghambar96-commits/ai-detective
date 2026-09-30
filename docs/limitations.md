@@ -46,8 +46,8 @@
 | 8 | **In-memory queue** | The FIFO job queue holds analysis ids in process memory: no persistence across restarts (queued rows from a crashed process remain `queued`), no distributed workers, single-node only. Redis is planned; the queue interface was designed to make that a swap. |
 | 9 | **LLM is optional and explanation-only** | Off by default. When enabled it only explains the engine's structured output (system-prompt-forbidden from changing it, and data-flow-forbidden: it only ever *receives* the final verdict). It adds no detection capability. |
 | 10 | **API-key auth is optional (local-mode default)** | `AIDETECTIVE_REQUIRE_API_KEY=false` (default) accepts keyless requests — right for `localhost`, wrong for any shared deployment. Rate limiting is per-key and in-memory (resets on restart, not shared across workers). |
-| 11 | **No automated test suite** | This release ships without automated tests; behavior was verified manually (see `worklog.md`). The intended test matrix and tooling are documented in the README's [Testing](../README.md#testing) section — first phase-2 item. |
-| 12 | **Web dashboard is under development** | The release is API-first; the app root is currently a scaffold placeholder and dashboard views are being built. All functionality is reachable via the REST API today. |
+| 11 | **Heuristic baseline quality (no benchmark evals)** | 186 automated tests (`bun test`) verify determinism, security, parsing, scoring and every API endpoint — but tests verify **correct behavior, not detection accuracy**. Accuracy-vs-benchmark evaluation still requires a labeled dataset harness (roadmap). |
+| 12 | **Web dashboard is complete but API-first** | All 12 dashboard views (analyzer ×4, history, reports, datasets, models, LLM, plugins, system, API keys, settings) are functional and browser-verified; the REST API remains the primary, fully-featured interface. |
 
 ## 2. Modality-specific caveats
 

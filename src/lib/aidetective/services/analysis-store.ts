@@ -179,7 +179,7 @@ export function toDetailDTO(
       aiScore: (s.aiScore as number | null) ?? null,
       weight: Number(s.weight),
       direction: String(s.direction) as SignalDirection,
-      evidence: safeParse(s.evidence as string | null),
+      evidence: safeParse(s.evidence as string | null) ?? null,
       notes: (s.notes as string | null) ?? null,
     })),
     detectorRuns: row.detectorRuns.map((r) => ({

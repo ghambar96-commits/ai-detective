@@ -482,21 +482,20 @@ interface Signal {
 
 ## تست
 
-**وضعیت صادقانه: این نسخه بدون suite تست خودکار عرضه می‌شود.** پروژه در یک محیط sandbox محدود ساخته و تأیید شد (رفتار end-to-end به‌صورت دستی با `curl` بررسی شده — `worklog.md` را ببینید) و جایی برای پیاده‌سازی suite کامل باقی نماند. این یک شکاف شناخته‌شده است، به‌عنوان اولین آیتم فاز ۲ پیگیری می‌شود و ماتریس زیر قراردادِ آن است. ترجیح دادیم شکاف مستندشده ارائه کنیم، نه تیک سبز جعلی.
+پروژه یک suite تست خودکارِ واقعی دارد (`bun test`، **۱۸۶ تست / ۸۶۹ assertion** در ۱۲ فایل) — بدون mock از منطق موتور، بدون نتیجه‌ی جعلی:
 
-ماتریس تست موردنظر:
+- **تست‌های unit** (`tests/unit/`): ریاضیات Scoring Engine (رأی وزن‌دار، polarity، consistency، سقف confidence، قواعد uncertain/inconclusive، override وزن‌ها)؛ آمارهای feature متنی؛ **هر ۱۵ detector با تضمین determinism** (ورودی یکسان → خروجی JSON-یکسان) و بررسی جهتِ صادقانه‌ی signalها؛ pipeline تصویر (بافرهای واقعی PNG/JPEG ساخت‌شده در تست: پارس IHDR/tEXt، معکوس‌سازی کیفیت DQT، طبقه‌بندی chroma subsampling طبق JFIF، آمار پیکسلی sharp)؛ pipeline صوت (بافرهای واقعی WAV/MP3/FLAC/M4A: دیکود PCM با مقادیر RMS/peak معلوم، پارس ID3v2 و تشخیص TTS، FLAC STREAMINFO)؛ امنیت فایل (تشخیص magic bytes در برابر extension دروغگو، پاک‌سازی filename، محدودیت حجم، محصور بودن مسیر ذخیره‌سازی)؛ parserها (TXT/MD/PDF/DOCX با فایل‌های واقعی)؛ صف کارها (FIFO، هم‌روندی، containment کرش)؛ رجیستری و بارگذاری plugin (plugin نمونه‌ی همراه از دیسک بارگذاری می‌شود)؛ gating لایه‌ی LLM (فقط-توضیح، بی‌نیاز از vendor)؛ exporterهای گزارش (ساختار JSON + escape شدن HTML).
+- **تست‌های integration** (`tests/integration/`): اجرا روی **سرور زنده** — تمام endpointهای `/api/v1/`، جریان کامل `upload → queue → analysis → database → report` برای PNG/TXT/DOCX/PDF/WAV/MP3، پاکت خطاهای ساخت‌یافته (400/404/409/413/415/429)، preflight رمز عبور CORS، جستجو/فیلتر/مرتب‌سازی/صفحه‌بندی history، CRUD دیتاست‌ها و مدل‌ها، چرخه‌ی حیات کلید API (ساخت → استفاده → ابطال → 401) و rate limit هر کلید، و **determinism** سرتاسری (یک متن دو بار → verdict و score و مجموعه signal یکسان).
 
-| حوزه | پوشش |
-| --- | --- |
-| تست‌های API | شکل envelope؛ CORS؛ auth (حالت local در برابر الزام کلید، کلید نامعتبر/ابطال‌شده، rate limit)؛ خطاهای اعتبارسنجی (متن خالی، آپلود حجیم، نوع پشتیبانی‌نشده)؛ روند 202 + polling؛ اعتبار سند OpenAPI |
-| تست‌های unit هر detector | هر ۱۵ detector روی fixtureهای مصنوعی (متن شبیه AI در برابر متن انسانی؛ تصویر با EXIF در برابر تصویر بدون metadata؛ WAV با تگ TTS)؛ حالت‌های `skipped`/`error`؛ وجود `limitations` |
-| تست‌های parser | پاک‌سازی txt/md؛ استخراج PDF شامل هشدار PDF اسکن‌شده؛ استخراج DOCX؛ تشخیص magic bytes در برابر extension و MIME دروغگو |
-| تست‌های scoring | ریاضیات deterministic (رأی وزن‌دار، polarity، consistency، strength، سقف confidence)؛ قواعد uncertain/inconclusive؛ مرزهای آستانه‌ها؛ override وزن هر detector |
-| تست‌های auth | sha256 در حافظه‌ی دیتابیس، نمایش plaintext فقط یک‌بار، rate limit پنجره‌ی لغزان هر کلید، پیش‌فرض حالت local |
-| تست‌های اعتبارسنجی فایل | محدودیت حجم، پاک‌سازی filename، محصور بودن مسیر ذخیره‌سازی (`isInsideUploads`)، هشدار تفاوت نوع اعلان‌شده و تشخیص‌داده‌شده |
-| تست‌های ثبت plugin | اعتبارسنجی manifest، قواعد مسیر entry، containment plugin خراب، id تکراری، ذخیره‌ی status در دیتابیس |
+اجرا:
 
-ابزار پیشنهادی: **vitest** یا **bun test** برای unit و scoring؛ صدا زدن مستقیم route handlerها (یا `fetch` به یک سرور تست) برای API؛ fixtureهای باینری کوچک زیر `tests/fixtures/`. interfaceهای detector خالص و ساده‌اند، پس unit testها به لایه‌ی HTTP نیازی ندارند.
+```bash
+bun test          # همه‌چیز (integration بدون سرور با اطلاع skip می‌شود)
+bun test tests/unit/         # فقط موتور، بدون نیاز به سرور
+bun run lint && bun run build  # دروازه‌های کیفیت
+```
+
+suite integration ردیف‌های واقعی (analysis/dataset/key) در دیتابیس می‌نویسد و بعد از خودش پاک می‌کند؛ کلیدهایی که می‌سازد ابطال می‌شوند و به‌عنوان تاریخچه‌ی audit در داشبورد دیده می‌شوند.
 
 ---
 

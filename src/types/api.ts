@@ -48,10 +48,10 @@ export interface AnalysisSignal {
   detectorId: string;
   signalKey: string;
   name: string;
-  description: string;
-  value: number;
+  description: string | null;
+  value: string | null;
   unit: string | null;
-  aiScore: number;
+  aiScore: number | null;
   weight: number;
   direction: SignalDirection;
   evidence: AnalysisEvidence[] | null;
@@ -65,7 +65,7 @@ export interface DetectorRun {
   version: string;
   source: DetectorSource;
   status: string;
-  durationMs: number;
+  durationMs: number | null;
   summary: string | null;
   error: string | null;
 }
@@ -88,7 +88,7 @@ export interface AnalysisDetail {
   llmInterpretation: string | null;
   llmProvider: string | null;
   llmModel: string | null;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, unknown> | null;
   signals: AnalysisSignal[];
   detectorRuns: DetectorRun[];
 }
@@ -231,9 +231,9 @@ export interface PluginInfo {
   name: string;
   version: string;
   type: string;
-  modality: string;
+  modality: string | null;
   status: string;
-  description: string;
+  description: string | null;
   error: string | null;
   updatedAt: string;
 }
@@ -372,7 +372,7 @@ export interface ApiKeyInfo {
   id: string;
   name: string;
   prefix: string;
-  rateLimit: number;
+  rateLimit: number | null;
   createdAt: string;
   lastUsedAt: string | null;
   revoked: boolean;

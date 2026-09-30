@@ -31,6 +31,7 @@ import { getAnalyzerFor } from "./analyzers";
 import { getSettingsService } from "./services/settings";
 import {
   createAnalysis,
+  getAnalysisDetail,
   getAnalysisOrThrow,
   markFailed,
   persistResults,
@@ -39,7 +40,6 @@ import {
 import { getJobQueue } from "./queue/job-queue";
 import { interpretWithLLM } from "./llm/interpret";
 import { isInsideUploads, sanitizeFilename, storagePathFor, validateUpload } from "./security/files";
-import { getAnalysisDetail } from "./services/analysis-store";
 import { db } from "@/lib/db";
 
 const log = createLogger("orchestrator");

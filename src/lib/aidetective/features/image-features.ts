@@ -199,14 +199,22 @@ export function extractJpegStructure(buffer: Buffer): JpegStructure {
         continue;
       }
       const len = buffer.readUInt16BE(offset + 2);
-      if (marker === 0xdb && len >= 69) {
-        // DQT
-        const table: number[] = [];
-        const pq = buffer[offset + 4] >> 4;
-        if (pq === 0) {
-          for (let i = 0; i < 64; i++) table.push(buffer[offset + 5 + i]);
-          result.hasQuantTables = true;
-          if (!lumTable) lumTable = table;
+      if (marker === 0xdb && len >= 67) {
+        // DQT: one or more tables per segment — each is 1 precision byte + 64
+        // coefficients (8-bit, pq=0) or 128 coefficients (16-bit, pq=1).
+        let p = offset + 4;
+        const segEnd = offset + 2 + len;
+        while (p + 65 <= segEnd) {
+          const pq = buffer[p] >> 4;
+          const tableLen = pq === 0 ? 64 : 128;
+          if (p + 1 + tableLen > segEnd) break;
+          if (pq === 0) {
+            const table: number[] = [];
+            for (let i = 0; i < 64; i++) table.push(buffer[p + 1 + i]);
+            result.hasQuantTables = true;
+            if (!lumTable) lumTable = table;
+          }
+          p += 1 + tableLen;
         }
       } else if ((marker === 0xc0 || marker === 0xc2) && len >= 15) {
         if (marker === 0xc2) result.progressive = true;
@@ -226,14 +234,20 @@ export function extractJpegStructure(buffer: Buffer): JpegStructure {
     if (lumTable && sampling.length >= 3) {
       result.qualityEstimate = estimateJpegQuality(lumTable);
       const [y, cb, cr] = sampling;
+      // JFIF convention: sampling factors (h,v) per component. Chroma is
+      // 1x1 in the common profiles; the LUMA factors decide the profile.
+      const is = (c: [number, number], h: number, v: number) => c[0] === h && c[1] === v;
+      const chromaNeutral = is(cb, 1, 1) && is(cr, 1, 1);
       result.chromaSubsampling =
-        y[0] === 1 && y[1] === 1 && cb[0] === 1 && cb[1] === 1 && cr[0] === 1 && cr[1] === 1
+        is(y, 1, 1) && chromaNeutral
           ? "4:4:4"
-          : cb[0] === 1 && cb[1] === 1 && cr[0] === 1 && cr[1] === 1
+          : is(y, 2, 1) && chromaNeutral
             ? "4:2:2"
-            : cb[0] === 2 && cb[1] === 2
+            : is(y, 2, 2) && chromaNeutral
               ? "4:2:0"
-              : `${y[0]}x${y[1]}/${cb[0]}x${cb[1]}`;
+              : is(y, 1, 2) && chromaNeutral
+                ? "4:4:0"
+                : `${y[0]}x${y[1]}/${cb[0]}x${cb[1]}`;
     }
   } catch {
     /* best-effort */
@@ -369,8 +383,4 @@ export async function extractPixelStats(buffer: Buffer): Promise<PixelStats | { 
 
 function round(n: number): number {
   return Math.round(n * 10000) / 10000;
-}
-
-export function maxPixelDimension(): number {
-  return config.security.maxUploadMb > 50 ? 8000 : 8000;
 }

@@ -69,7 +69,7 @@ export const compressionDetector: Detector = {
       kind: "metadata",
       label: "PNG structure",
       content: `bit depth ${bitDepth ?? "?"} · color type ${colorType ?? "?"} (6 = RGBA, 2 = RGB)`,
-      meta: { bitDepth, colorType },
+      meta: { bitDepth: bitDepth ?? null, colorType: colorType ?? null },
     });
     const signal: Signal = {
       id: `${this.id}.png_profile`,

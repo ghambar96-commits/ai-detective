@@ -481,21 +481,20 @@ interface Signal {
 
 ## Testing
 
-**Honest status: this release ships without an automated test suite.** The project was built and verified in a constrained sandbox environment (end-to-end behavior was verified manually via `curl` — see `worklog.md`), and there was no room to land a proper suite. This is a known gap, it is tracked as the first phase-2 item, and the matrix below is the contract for it. We'd rather ship a documented gap than a fake ✅.
+The project ships with a real, automated test suite (`bun test`, **186 tests / 869 assertions** across 12 files) — no mocks of engine logic, no faked results:
 
-Intended test matrix:
+- **Unit tests** (`tests/unit/`): scoring engine math (weighted votes, polarity, consistency, confidence cap, uncertain/inconclusive rules, weight overrides); text feature statistics; **all 15 detectors with determinism guarantees** (identical input → identical output, JSON-deep) and honest-signal direction checks; image pipeline (real crafted PNG/JPEG buffers: IHDR/tEXt parsing, DQT quality inversion, JFIF chroma-subsampling classification, sharp pixel statistics); audio pipeline (real crafted WAV/MP3/FLAC/M4A buffers: PCM decoding with known RMS/peak values, ID3v2/TTS-hint parsing, FLAC STREAMINFO); file security (magic-byte detection vs lying extensions, filename sanitization, size limits, storage-path containment); parsers (TXT/MD/PDF/DOCX with real crafted files); job queue (FIFO, concurrency, crash containment); registry/plugin loading (the bundled example plugin is loaded from disk); LLM gating (explanation-only, provider-agnostic); report exporters (JSON structure + HTML escaping).
+- **Integration tests** (`tests/integration/`): run against the **live server** — every `/api/v1/` endpoint, the full `upload → queue → analysis → database → report` flow for PNG/TXT/DOCX/PDF/WAV/MP3, structured error envelopes (400/404/409/413/415/429), CORS preflight, history search/filter/sort/pagination, datasets & models CRUD, API-key lifecycle (create → use → revoke → 401) and per-key rate limiting, and end-to-end **determinism** (the same text analyzed twice returns an identical verdict, score and signal set).
 
-| Area | Coverage |
-| --- | --- |
-| API tests | envelope shape; CORS; auth (local mode vs enforcement, invalid/revoked keys, rate limits); validation errors (empty text, oversize upload, unsupported type); 202 + polling flow; OpenAPI doc validity |
-| Detector unit tests | each of the 15 detectors on synthetic fixtures (AI-ish vs human-ish text; EXIF-tagged vs clean images; TTS-tagged WAVs); `skipped`/`error` states; `limitations` present |
-| Parser tests | txt/md stripping; PDF extraction incl. scanned-PDF warning; DOCX extraction; magic-byte detection vs lying extensions/MIME |
-| Scoring tests | deterministic math (weighted vote, polarity, consistency, strength, confidence cap); uncertain/inconclusive rules; threshold boundaries; per-detector weight overrides |
-| Auth tests | sha256-at-rest, plaintext-shown-once, per-key sliding-window rate limit, local-mode default |
-| File-validation tests | size limits, filename sanitization, storage-path containment (`isInsideUploads`), declared-vs-detected type warnings |
-| Plugin registration tests | manifest validation, entry-path rules, broken-plugin containment, duplicate ids, DB status persistence |
+Run them:
 
-Suggested tooling: **vitest** or **bun test** for units + scoring; route handlers invoked directly (or `fetch` against a test server) for API tests; small binary fixtures under `tests/fixtures/`. The detector interfaces are pure and synchronous-friendly, so unit tests need no HTTP layer.
+```bash
+bun test          # everything (integration tests skip with a notice if the server is not running)
+bun test tests/unit/         # engine-only, no server needed
+bun run lint && bun run build  # quality gates
+```
+
+The integration suite writes real rows (analyses/datasets/keys) into your database and cleans up after itself; keys it creates are revoked and visible in the dashboard as audit history.
 
 ---
 
@@ -512,7 +511,6 @@ Full, maintained list: **[docs/limitations.md](docs/limitations.md)**. Summary (
 - **Queue**: in-memory FIFO — no persistence across restarts, no distributed workers.
 - **LLM layer** is optional and explanation-only; it never decides verdicts (and cannot).
 - **Auth** is optional local-mode by default — enable `AIDETECTIVE_REQUIRE_API_KEY` for any shared deployment.
-- **No automated test suite** in this release (see [Testing](#testing)).
 - **Web dashboard** is under active development; this release is API-first.
 
 > ⚠️ **Responsible use:** AIDetective provides a probabilistic analysis — its output is **not proof** of authorship or origin. Do not use it for legal accusations, disciplinary action, defamation, or harassment. Humans are routinely misclassified; treat results as one input among several, and always involve human review.
@@ -523,7 +521,6 @@ Full, maintained list: **[docs/limitations.md](docs/limitations.md)**. Summary (
 
 **Phase 2 — correctness & scale**
 
-- Automated test suite implementing the matrix above (vitest/bun test + fixtures).
 - Trained computer-vision and audio models, distributed **through the existing plugin registry** (a model is just a detector plugin with higher weight + documented eval results).
 - Redis-backed queue with persisted jobs and horizontal workers.
 - PostgreSQL support (schema is already portable).

@@ -17,7 +17,6 @@ import { readdir, readFile } from "fs/promises";
 import { existsSync } from "fs";
 import { join, resolve } from "path";
 import { pathToFileURL } from "url";
-import { config } from "../core/config";
 import { createLogger } from "../core/logger";
 import { db } from "@/lib/db";
 import { getRegistry } from "../core/registry";
@@ -161,7 +160,6 @@ export async function loadAllPlugins(): Promise<LoadedPlugin[]> {
       await recordEvent("error", `plugin:${manifest.id}`, `Plugin failed: ${manifest.id}`, { error: result.error }).catch(() => undefined);
     }
   }
-  void config;
   return loaded;
 }
 

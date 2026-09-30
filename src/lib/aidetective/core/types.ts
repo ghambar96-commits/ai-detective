@@ -109,8 +109,8 @@ export interface FeatureExtractor {
 export interface Analyzer {
   readonly modality: Modality;
   readonly featureExtractors: FeatureExtractor[];
-  /** Resolve the detectors that should run for this analyzer. */
-  resolveDetectors(registry: Registry, options: AnalysisOptions): Detector[];
+  /** Resolve the detectors that should run for this analysis (from the global registry). */
+  resolveDetectors(options: AnalysisOptions): Detector[];
   /** Analyzer-level warnings (e.g. "very short text"). */
   collectWarnings(features: Record<string, unknown>): string[];
 }
@@ -147,9 +147,10 @@ export type LLMProviderId = "zai" | "ollama" | "openai_compatible" | (string & {
 export interface LLMConfig {
   enabled: boolean;
   provider: LLMProviderId;
-  baseUrl?: string;
-  model?: string;
-  apiKey?: string;
+  /** null = explicitly cleared in settings; undefined = never configured. */
+  baseUrl?: string | null;
+  model?: string | null;
+  apiKey?: string | null;
   temperature: number;
   maxTokens?: number;
   timeoutMs?: number;

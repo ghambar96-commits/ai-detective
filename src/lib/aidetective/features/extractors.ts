@@ -5,7 +5,6 @@ import {
   extractImageMetadata,
   extractJpegStructure,
   extractPixelStats,
-  parsePngDimensions,
 } from "./image-features";
 import {
   parseFlacMetadata,

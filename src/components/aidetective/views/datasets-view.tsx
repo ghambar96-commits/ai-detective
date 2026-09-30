@@ -379,7 +379,7 @@ function AddSamplesDialog({
     setSubmitting(true);
     try {
       const result = await addDatasetSamples(dataset.id, samples);
-      toast.success(`Queued ${result.queued ?? samples.length} sample(s)`, { description: dataset.name });
+      toast.success(`Imported ${result.imported} sample(s)`, { description: dataset.name });
       onOpenChange(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Import failed");

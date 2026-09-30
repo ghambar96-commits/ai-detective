@@ -124,6 +124,3 @@ export function getSettingsService(): SettingsService {
   if (!instance) instance = new SettingsService();
   return instance;
 }
-
-// Keep DEFAULT_SCORING referenced for consumers importing settings (public surface).
-export { DEFAULT_SCORING };

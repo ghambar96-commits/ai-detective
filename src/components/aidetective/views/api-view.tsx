@@ -153,7 +153,7 @@ export function ApiView() {
                       <TableCell className="text-sm font-medium">{key.name}</TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">{key.prefix}…</TableCell>
                       <TableCell className="text-right text-sm tabular-nums">
-                        {key.rateLimit > 0 ? `${key.rateLimit}/min` : "unlimited"}
+                        {key.rateLimit != null && key.rateLimit > 0 ? `${key.rateLimit}/min` : "unlimited"}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         <RelativeTime iso={key.createdAt} />

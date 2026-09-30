@@ -41,30 +41,22 @@ export interface ApiContext<P = Record<string, string>> {
   params: P;
 }
 
-interface HandlerOptions {
-  /** "required" forces an API key even in local mode (used for api-keys mgmt). */
-  auth?: "default" | "required";
-}
-
 /**
  * Wrap a route handler: request logging (no bodies/secrets), structured error
  * responses, authentication. Handlers receive (req, params).
+ *
+ * Auth model: when requireApiKey is disabled (local dashboard mode) requests
+ * without a key are allowed; when it is enabled EVERY /api/v1 route — including
+ * api-key management — requires a valid key.
  */
 export function apiHandler<P = Record<string, string>>(
-  fn: (ctx: ApiContext<P>) => Promise<NextResponse>,
-  options: HandlerOptions = {}
+  fn: (ctx: ApiContext<P>) => Promise<NextResponse>
 ) {
   return async (req: NextRequest, routeCtx?: { params: Promise<P> }): Promise<NextResponse> => {
     const started = Date.now();
     const path = new URL(req.url).pathname;
     try {
       const auth = await authenticate(req);
-      if (options.auth === "required" && auth.localMode) {
-        throw new AppError(
-          "UNAUTHORIZED",
-          "This endpoint requires an API key (it manages secrets)."
-        );
-      }
       const params = routeCtx?.params ? await routeCtx.params : ({} as P);
       const res = await fn({ req, params });
       log.info("request", {

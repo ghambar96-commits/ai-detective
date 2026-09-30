@@ -197,9 +197,11 @@ export async function downloadFile(path: string, fallbackName: string): Promise<
 import type {
   AnalysisDetail,
   AnalysisOptions,
+  AnalysisSummary,
   ApiKeyCreateResult,
   ApiKeysResponse,
   DatasetCreateInput,
+  DatasetInfo,
   DatasetSampleInput,
   DatasetsResponse,
   DetectorInfo,
@@ -279,8 +281,8 @@ export function listModels(): Promise<ModelsResponse> {
 export function createModel(input: ModelCreateInput): Promise<{ id: string; name: string }> {
   return apiPost<{ id: string; name: string }>("/models", input);
 }
-export function updateModelStatus(id: string, status: ModelInfo["status"]): Promise<ModelInfo> {
-  return apiPatch<ModelInfo>(`/models/${encodeURIComponent(id)}`, { status });
+export function updateModelStatus(id: string, status: ModelInfo["status"]): Promise<{ id: string; status: string }> {
+  return apiPatch<{ id: string; status: string }>(`/models/${encodeURIComponent(id)}`, { status });
 }
 export function deleteModel(id: string): Promise<{ deleted: boolean }> {
   return apiDelete<{ deleted: boolean }>(`/models/${encodeURIComponent(id)}`);
@@ -296,8 +298,8 @@ export function createDataset(input: DatasetCreateInput): Promise<{ id: string; 
 export function deleteDataset(id: string): Promise<{ deleted: boolean }> {
   return apiDelete<{ deleted: boolean }>(`/datasets/${encodeURIComponent(id)}`);
 }
-export function addDatasetSamples(id: string, samples: DatasetSampleInput[]): Promise<{ queued: number }> {
-  return apiPost<{ queued: number }>(`/datasets/${encodeURIComponent(id)}/samples`, { samples });
+export function addDatasetSamples(id: string, samples: DatasetSampleInput[]): Promise<{ imported: number; note: string }> {
+  return apiPost<{ imported: number; note: string }>(`/datasets/${encodeURIComponent(id)}/samples`, { samples });
 }
 
 /* settings / llm */

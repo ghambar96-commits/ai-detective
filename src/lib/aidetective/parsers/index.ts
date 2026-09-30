@@ -151,7 +151,7 @@ export class AudioParser implements FileParser {
     return {
       kind: "audio",
       buffer,
-      meta: { parser: this.id, declaredExt: ext },
+      meta: { parser: this.id, declaredExt: info.ext },
       warnings: [],
     };
   }

@@ -71,11 +71,3 @@ export function createLogger(source: string): Logger {
     child: (sub) => createLogger(`${source}:${sub}`),
   };
 }
-
-export const logger = createLogger("aidetective");
-
-/** Log raw content only when explicitly enabled (never by default). */
-export function contentPreview(content: string, max = 120): string | undefined {
-  if (!config.log.debugContent) return undefined;
-  return content.slice(0, max);
-}

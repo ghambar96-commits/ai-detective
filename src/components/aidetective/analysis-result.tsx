@@ -427,7 +427,7 @@ function SignalRow({ signal }: { signal: AnalysisSignal }) {
               <span>
                 Observed value:{" "}
                 <span className="font-medium text-foreground tabular-nums">
-                  {typeof signal.value === "number" ? Number(signal.value.toFixed(4)) : signal.value}
+                  {signal.value ?? "—"}
                   {signal.unit ? ` ${signal.unit}` : ""}
                 </span>
               </span>
